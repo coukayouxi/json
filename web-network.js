@@ -27,7 +27,7 @@
               },
               DATA: {
                 type: Scratch.ArgumentType.STRING,
-                defaultValue: '{"key": "value"}'
+                defaultValue: '{}'
               }
             }
           },
@@ -54,11 +54,11 @@
             arguments: {
               KEY: {
                 type: Scratch.ArgumentType.STRING,
-                defaultValue: 'Authorization'
+                defaultValue: 'User-Agent'
               },
               VALUE: {
                 type: Scratch.ArgumentType.STRING,
-                defaultValue: 'Bearer token'
+                defaultValue: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
               }
             }
           },
@@ -92,29 +92,33 @@
       let data = args.DATA;
 
       try {
-        // 对于GET请求，不包含body，并且如果data参数不为空，则将其作为查询参数添加到URL中
         let finalUrl = url;
         let config = {
           method: method,
           headers: {
             ...this.headers,
-          }
+            'User-Agent': 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)'
+          },
+          mode: 'cors' // 允许跨域请求
         };
 
         if (method === 'GET' || method === 'HEAD') {
-          // 如果是GET请求且提供了数据，则尝试将其作为查询参数
-          if (data && data.trim() !== '') {
+          // 对于GET请求，如果有数据则作为查询参数
+          if (data && data.trim() !== '' && data.trim() !== '{}') {
             try {
               const paramsObj = JSON.parse(data);
               const searchParams = new URLSearchParams(paramsObj);
               finalUrl += (url.includes('?') ? '&' : '?') + searchParams.toString();
             } catch (e) {
-              // 如果不是有效的JSON，则直接附加到URL后面（用户需要自己格式化）
-              finalUrl += (url.includes('?') ? '&' : '?') + data;
+              // 如果不是有效的JSON，尝试直接附加
+              if (!url.includes('?')) {
+                finalUrl += '?' + encodeURIComponent(data);
+              } else {
+                finalUrl += '&' + encodeURIComponent(data);
+              }
             }
           }
         } else {
-          // 非GET请求，将数据作为请求体
           config.headers['Content-Type'] = 'application/json';
           config.body = data;
         }
