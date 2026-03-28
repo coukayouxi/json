@@ -23,7 +23,7 @@
               },
               URL: {
                 type: Scratch.ArgumentType.STRING,
-                defaultValue: 'https://httpbin.org/post'
+                defaultValue: 'https://httpbin.org/get'
               },
               DATA: {
                 type: Scratch.ArgumentType.STRING,
@@ -38,7 +38,7 @@
             arguments: {
               HEADER: {
                 type: Scratch.ArgumentType.STRING,
-                defaultValue: 'Content-Type'
+                defaultValue: 'content-type'
               }
             }
           },
@@ -70,8 +70,14 @@
         ],
         menus: {
           methodMenu: {
-            acceptReporters: true,
-            items: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+            acceptReporters: false,
+            items: [
+              {text: 'GET', value: 'GET'},
+              {text: 'POST', value: 'POST'},
+              {text: 'PUT', value: 'PUT'},
+              {text: 'DELETE', value: 'DELETE'},
+              {text: 'PATCH', value: 'PATCH'}
+            ]
           }
         }
       };
@@ -89,17 +95,26 @@
       let data = args.DATA;
 
       try {
-        const response = await fetch(url, {
+        // GET和HEAD请求不能有body
+        const config = {
           method: method,
           headers: {
             ...this.headers,
-            'Content-Type': 'application/json'
-          },
-          body: method !== 'GET' && method !== 'HEAD' ? data : undefined
-        });
+          }
+        };
+
+        if (method !== 'GET' && method !== 'HEAD') {
+          config.headers['Content-Type'] = 'application/json';
+          config.body = data;
+        }
+
+        const response = await fetch(url, config);
 
         this.lastResponseCode = response.status;
-        this.lastResponseHeaders = Object.fromEntries(response.headers.entries());
+        this.lastResponseHeaders = {};
+        for (const [key, value] of response.headers.entries()) {
+          this.lastResponseHeaders[key.toLowerCase()] = value;
+        }
 
         const result = await response.text();
         return result;
